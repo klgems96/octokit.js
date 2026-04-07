@@ -54,8 +54,14 @@ describe("App", () => {
       options?: object,
     ) => {
       const response = await mock(url as string, options);
-      const resolvedUrl =
-        typeof url === "string" ? url : url instanceof URL ? url.href : url.url;
+      let resolvedUrl: string;
+      if (typeof url === "string") {
+        resolvedUrl = url;
+      } else if (url instanceof URL) {
+        resolvedUrl = url.href;
+      } else {
+        resolvedUrl = url.url;
+      }
       return new Proxy(response, {
         get(target, prop, receiver) {
           if (prop === "url") return resolvedUrl;
