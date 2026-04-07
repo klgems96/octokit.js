@@ -49,6 +49,28 @@ describe("App", () => {
     MockDate.set(0);
     mock = fetchMock.sandbox();
 
+    const fetchWithUrl = async (
+      url: string | URL | globalThis.Request,
+      options?: object,
+    ) => {
+      const response = await mock(url as string, options);
+      let resolvedUrl: string;
+      if (typeof url === "string") {
+        resolvedUrl = url;
+      } else if (url instanceof URL) {
+        resolvedUrl = url.href;
+      } else {
+        resolvedUrl = url.url;
+      }
+      return new Proxy(response, {
+        get(target, prop, receiver) {
+          if (prop === "url") return resolvedUrl;
+          const val = Reflect.get(target, prop, receiver);
+          return typeof val === "function" ? val.bind(target) : val;
+        },
+      });
+    };
+
     app = new App({
       appId: APP_ID,
       privateKey: PRIVATE_KEY,
@@ -61,7 +83,7 @@ describe("App", () => {
       },
       Octokit: Octokit.defaults({
         request: {
-          fetch: mock,
+          fetch: fetchWithUrl,
         },
         throttle: { enabled: false },
       }),
